@@ -1,8 +1,8 @@
 import express from 'express';
 import db from '../app/models/index.js';
-import { Op, Sequelize } from 'sequelize';
+import { Op, Sequelize, where } from 'sequelize';
 import dayjs from 'dayjs';
-const { sequelize, Employee } = db;
+const { sequelize, Employee, TitleEmp, Title } = db;
 
 const eduRouter = express.Router();
 
@@ -118,13 +118,13 @@ eduRouter.get('/api/edu', async (request, response, next) => {
     // });
 
     // 이름이 '강가람'이고, 성별이 여자인 사원 정보 조회
-    result = await Employee.findAll({
-      attributes: ['emp_id', 'name', 'gender'],
-      where: {
-        name: '강가람',
-        gender: 'F',
-      }
-    })
+    // result = await Employee.findAll({
+    //   attributes: ['emp_id', 'name', 'gender'],
+    //   where: {
+    //     name: '강가람',
+    //     gender: 'F',
+    //   }
+    // })
 
     // 이름이 '강가람' 또는 '신서연'인 사원 조회(OR)
     // result = await Employee.findAll({
@@ -187,14 +187,43 @@ eduRouter.get('/api/edu', async (request, response, next) => {
     //   offset: 10,
     // });
 
-    // groupby, having
-    result = await Employee.findAll({
-      attributes: [
-        'gender', 
-        [sequelize.fn('COUNT', sequelize.col('*')), 'cnt_gender']
-      ],
-      group: ['gender'],
-      having: sequelize.literal('cnt_gender >= 40000'),
+    // // groupby, having
+    // result = await Employee.findAll({
+    //   attributes: [
+    //     'gender', 
+    //     [sequelize.fn('COUNT', sequelize.col('*')), 'cnt_gender']
+    //   ],
+    //   group: ['gender'],
+    //   having: sequelize.literal('cnt_gender >= 40000'),
+    // });
+
+    // JOIN 
+    result = await Employee.findOne({
+      attributes: ['empId', 'name'],
+      where: {
+        empId: 1
+      },
+      include: [
+        {
+          model: TitleEmp, // 내가 연결할 모델
+          as: 'titleEmps', // 내가 사용할 모델
+          required: true,  // 'true'면 INNER JOIN, 'false'면 LEFT JOIN
+          attributes: ['titleCode'],
+          where: {
+            endAt: {
+              [Op.is]: null,
+            }
+          },
+          include: [
+            {
+              model: Title,
+              as: 'title',
+              required: true,
+              attributes: ['title']
+            }
+          ],
+        }
+      ], 
     });
 
     return response.status(200).send({
